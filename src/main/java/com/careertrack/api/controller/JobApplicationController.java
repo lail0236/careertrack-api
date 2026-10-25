@@ -43,6 +43,13 @@ public class JobApplicationController {
         return service.update(id, request);
     }
 
+    @PatchMapping("/{id}/status")
+    public JobApplication updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateApplicationStatusRequest request) {
+        return service.updateStatus(id, request.status());
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {

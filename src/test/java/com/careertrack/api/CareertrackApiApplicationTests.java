@@ -13,8 +13,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -45,7 +45,8 @@ class CareertrackApiApplicationTests {
     void createApplicationReturnsCreatedRecord() throws Exception {
         mockMvc.perform(post("/api/applications")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validApplication())))
+                        .content(objectMapper.writeValueAsString(
+                                validApplication())))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.company").value("Microsoft"))
@@ -70,7 +71,8 @@ class CareertrackApiApplicationTests {
     void updateMissingApplicationReturnsNotFound() throws Exception {
         mockMvc.perform(put("/api/applications/9999")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validApplication())))
+                        .content(objectMapper.writeValueAsString(
+                                validApplication())))
                 .andExpect(status().isNotFound());
     }
 
@@ -99,7 +101,8 @@ class CareertrackApiApplicationTests {
     @Test
     void deleteExistingApplicationReturnsNoContent() throws Exception {
         JobApplication application =
-                repository.save(new JobApplication("Test Company", "Test Position"));
+                repository.save(new JobApplication(
+                        "Test Company", "Test Position"));
 
         Long id = application.getId();
 
@@ -107,5 +110,62 @@ class CareertrackApiApplicationTests {
                 .andExpect(status().isNoContent());
 
         assertFalse(repository.existsById(id));
+    }
+
+    @Test
+    void updateStatusChangesApplicationStatus() throws Exception {
+        JobApplication application =
+                repository.save(new JobApplication(
+                        "Test Company", "Software Engineer"));
+
+        Long id = application.getId();
+
+        mockMvc.perform(patch("/api/applications/" + id + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"INTERVIEW"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.status").value("INTERVIEW"));
+
+        assertEquals(
+                "INTERVIEW",
+                repository.findById(id).orElseThrow().getStatus()
+        );
+    }
+
+    @Test
+    void invalidStatusReturnsBadRequest() throws Exception {
+        JobApplication application =
+                repository.save(new JobApplication(
+                        "Test Company", "Software Engineer"));
+
+        Long id = application.getId();
+
+        mockMvc.perform(patch("/api/applications/" + id + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"HIRED"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+
+        assertEquals(
+                "SAVED",
+                repository.findById(id).orElseThrow().getStatus()
+        );
+    }
+
+    @Test
+    void updateStatusForMissingApplicationReturnsNotFound()
+            throws Exception {
+        mockMvc.perform(patch("/api/applications/9999/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"status":"INTERVIEW"}
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
     }
 }

@@ -10,10 +10,21 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 @Service
 @Transactional
 public class JobApplicationService {
+
+    private static final Set<String> VALID_STATUSES = Set.of(
+            "SAVED",
+            "APPLIED",
+            "ASSESSMENT",
+            "INTERVIEW",
+            "OFFER",
+            "REJECTED"
+    );
 
     private final JobApplicationRepository repository;
 
@@ -23,8 +34,10 @@ public class JobApplicationService {
 
     public JobApplication create(CreateJobApplicationRequest request) {
         JobApplication application =
-                new JobApplication(request.company().trim(),
-                                  request.position().trim());
+                new JobApplication(
+                        request.company().trim(),
+                        request.position().trim()
+                );
 
         application.setLocation(request.location());
         application.setJobUrl(request.jobUrl());
@@ -60,6 +73,25 @@ public class JobApplicationService {
         application.setDateApplied(request.dateApplied());
         application.setNotes(request.notes());
 
+        return repository.save(application);
+    }
+
+    public JobApplication updateStatus(Long id, String requestedStatus) {
+        JobApplication application = findById(id);
+
+        String normalizedStatus = requestedStatus.trim()
+                .toUpperCase(Locale.ROOT);
+
+        if (!VALID_STATUSES.contains(normalizedStatus)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid status '" + requestedStatus
+                            + "'. Allowed statuses: "
+                            + String.join(", ", VALID_STATUSES.stream().sorted().toList())
+            );
+        }
+
+        application.setStatus(normalizedStatus);
         return repository.save(application);
     }
 
