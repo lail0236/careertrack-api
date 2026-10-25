@@ -1,6 +1,7 @@
 
 package com.careertrack.api.controller;
 
+import com.careertrack.api.entity.ApplicationStatusHistory;
 import com.careertrack.api.entity.JobApplication;
 import com.careertrack.api.service.JobApplicationService;
 import jakarta.validation.Valid;
@@ -48,6 +49,12 @@ public class JobApplicationController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateApplicationStatusRequest request) {
         return service.updateStatus(id, request.status());
+    }
+
+    @GetMapping("/{id}/history")
+    public List<ApplicationStatusHistory> findStatusHistory(
+            @PathVariable Long id) {
+        return service.findStatusHistory(id);
     }
 
     @DeleteMapping("/{id}")

@@ -2,7 +2,9 @@
 package com.careertrack.api.service;
 
 import com.careertrack.api.controller.CreateJobApplicationRequest;
+import com.careertrack.api.entity.ApplicationStatusHistory;
 import com.careertrack.api.entity.JobApplication;
+import com.careertrack.api.repository.ApplicationStatusHistoryRepository;
 import com.careertrack.api.repository.JobApplicationRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -27,9 +29,13 @@ public class JobApplicationService {
     );
 
     private final JobApplicationRepository repository;
+    private final ApplicationStatusHistoryRepository historyRepository;
 
-    public JobApplicationService(JobApplicationRepository repository) {
+    public JobApplicationService(
+            JobApplicationRepository repository,
+            ApplicationStatusHistoryRepository historyRepository) {
         this.repository = repository;
+        this.historyRepository = historyRepository;
     }
 
     public JobApplication create(CreateJobApplicationRequest request) {
@@ -44,7 +50,15 @@ public class JobApplicationService {
         application.setDateApplied(request.dateApplied());
         application.setNotes(request.notes());
 
-        return repository.save(application);
+        JobApplication savedApplication = repository.save(application);
+
+        recordStatusChange(
+                savedApplication.getId(),
+                null,
+                savedApplication.getStatus()
+        );
+
+        return savedApplication;
     }
 
     @Transactional(readOnly = true)
@@ -87,12 +101,52 @@ public class JobApplicationService {
                     HttpStatus.BAD_REQUEST,
                     "Invalid status '" + requestedStatus
                             + "'. Allowed statuses: "
-                            + String.join(", ", VALID_STATUSES.stream().sorted().toList())
+                            + String.join(
+                                    ", ",
+                                    VALID_STATUSES.stream().sorted().toList()
+                            )
             );
         }
 
+        String previousStatus = application.getStatus();
+
+        if (previousStatus.equals(normalizedStatus)) {
+            return application;
+        }
+
         application.setStatus(normalizedStatus);
-        return repository.save(application);
+        JobApplication savedApplication = repository.save(application);
+
+        recordStatusChange(
+                savedApplication.getId(),
+                previousStatus,
+                normalizedStatus
+        );
+
+        return savedApplication;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApplicationStatusHistory> findStatusHistory(Long id) {
+        findById(id);
+
+        return historyRepository
+                .findByApplicationIdOrderByChangedAtAscIdAsc(id);
+    }
+
+    private void recordStatusChange(
+            Long applicationId,
+            String previousStatus,
+            String newStatus) {
+
+        ApplicationStatusHistory history =
+                new ApplicationStatusHistory(
+                        applicationId,
+                        previousStatus,
+                        newStatus
+                );
+
+        historyRepository.save(history);
     }
 
     public void delete(Long id) {
