@@ -1,6 +1,8 @@
 
 package com.careertrack.api.analytics;
 
+import com.careertrack.api.repository.ApplicationStatusHistoryRepository;
+import com.careertrack.api.repository.DailyApplicationActivity;
 import com.careertrack.api.repository.JobApplicationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,10 +24,27 @@ public class AnalyticsService {
             "REJECTED"
     );
 
-    private final JobApplicationRepository repository;
+    private static final List<String> SUBMITTED_STATUSES = List.of(
+            "APPLIED",
+            "ASSESSMENT",
+            "INTERVIEW",
+            "OFFER",
+            "REJECTED"
+    );
 
-    public AnalyticsService(JobApplicationRepository repository) {
+    private static final List<String> INTERVIEW_STATUSES = List.of(
+            "INTERVIEW",
+            "OFFER"
+    );
+
+    private final JobApplicationRepository repository;
+    private final ApplicationStatusHistoryRepository historyRepository;
+
+    public AnalyticsService(
+            JobApplicationRepository repository,
+            ApplicationStatusHistoryRepository historyRepository) {
         this.repository = repository;
+        this.historyRepository = historyRepository;
     }
 
     public List<StatusCountResponse> getStatusCounts() {
@@ -37,17 +56,38 @@ public class AnalyticsService {
                 .toList();
     }
 
+    public List<HistoricalStageCountResponse> getHistoricalStageCounts() {
+        return STATUSES.stream()
+                .map(status -> new HistoricalStageCountResponse(
+                        status,
+                        historyRepository
+                                .countDistinctApplicationsByStatuses(
+                                        List.of(status))
+                ))
+                .toList();
+    }
+
     public FunnelAnalyticsResponse getFunnelAnalytics() {
         long total = repository.count();
         long saved = repository.countByStatus("SAVED");
         long submitted = total - saved;
 
         long interviewOrOffer =
-                repository.countByStatusIn(
-                        List.of("INTERVIEW", "OFFER")
-                );
+                repository.countByStatusIn(INTERVIEW_STATUSES);
 
         long offers = repository.countByStatus("OFFER");
+
+        long historicalSubmitted =
+                historyRepository.countDistinctApplicationsByStatuses(
+                        SUBMITTED_STATUSES);
+
+        long historicalInterviews =
+                historyRepository.countDistinctApplicationsByStatuses(
+                        INTERVIEW_STATUSES);
+
+        long historicalOffers =
+                historyRepository.countDistinctApplicationsByStatuses(
+                        List.of("OFFER"));
 
         return new FunnelAnalyticsResponse(
                 total,
@@ -56,7 +96,12 @@ public class AnalyticsService {
                 offers,
                 percentage(submitted, total),
                 percentage(interviewOrOffer, submitted),
-                percentage(offers, submitted)
+                percentage(offers, submitted),
+                historicalSubmitted,
+                historicalInterviews,
+                historicalOffers,
+                percentage(historicalInterviews, historicalSubmitted),
+                percentage(historicalOffers, historicalSubmitted)
         );
     }
 

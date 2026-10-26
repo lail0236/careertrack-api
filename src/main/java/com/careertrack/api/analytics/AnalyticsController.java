@@ -22,6 +22,11 @@ public class AnalyticsController {
         return service.getStatusCounts();
     }
 
+    @GetMapping("/historical-stage-counts")
+    public List<HistoricalStageCountResponse> getHistoricalStageCounts() {
+        return service.getHistoricalStageCounts();
+    }
+
     @GetMapping("/funnel")
     public FunnelAnalyticsResponse getFunnelAnalytics() {
         return service.getFunnelAnalytics();

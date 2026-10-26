@@ -8,5 +8,10 @@ public record FunnelAnalyticsResponse(
         long offers,
         double submissionRatePercent,
         double interviewConversionPercent,
-        double offerConversionPercent
+        double offerConversionPercent,
+        long historicalSubmittedApplications,
+        long historicalInterviewApplications,
+        long historicalOfferApplications,
+        double historicalInterviewConversionPercent,
+        double historicalOfferConversionPercent
 ) {}
