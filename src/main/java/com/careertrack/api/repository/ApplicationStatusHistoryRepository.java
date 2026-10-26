@@ -20,8 +20,11 @@ public interface ApplicationStatusHistoryRepository
     @Query("""
             SELECT COUNT(DISTINCT h.applicationId)
             FROM ApplicationStatusHistory h
-            WHERE h.newStatus IN :statuses
+            JOIN JobApplication a ON a.id = h.applicationId
+            WHERE a.user.id = :userId
+              AND h.newStatus IN :statuses
             """)
-    long countDistinctApplicationsByStatuses(
-            @Param("statuses") List<String> statuses);
+    long countDistinctApplicationsByStatusesAndUserId(
+            @Param("statuses") List<String> statuses,
+            @Param("userId") Long userId);
 }

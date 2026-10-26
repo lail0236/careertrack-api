@@ -2,7 +2,6 @@
 package com.careertrack.api.analytics;
 
 import com.careertrack.api.repository.ApplicationStatusHistoryRepository;
-import com.careertrack.api.repository.DailyApplicationActivity;
 import com.careertrack.api.repository.JobApplicationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,25 +15,16 @@ import java.util.List;
 public class AnalyticsService {
 
     private static final List<String> STATUSES = List.of(
-            "SAVED",
-            "APPLIED",
-            "ASSESSMENT",
-            "INTERVIEW",
-            "OFFER",
-            "REJECTED"
+            "SAVED", "APPLIED", "ASSESSMENT",
+            "INTERVIEW", "OFFER", "REJECTED"
     );
 
     private static final List<String> SUBMITTED_STATUSES = List.of(
-            "APPLIED",
-            "ASSESSMENT",
-            "INTERVIEW",
-            "OFFER",
-            "REJECTED"
+            "APPLIED", "ASSESSMENT", "INTERVIEW", "OFFER", "REJECTED"
     );
 
     private static final List<String> INTERVIEW_STATUSES = List.of(
-            "INTERVIEW",
-            "OFFER"
+            "INTERVIEW", "OFFER"
     );
 
     private final JobApplicationRepository repository;
@@ -47,47 +37,47 @@ public class AnalyticsService {
         this.historyRepository = historyRepository;
     }
 
-    public List<StatusCountResponse> getStatusCounts() {
+    public List<StatusCountResponse> getStatusCounts(Long userId) {
         return STATUSES.stream()
                 .map(status -> new StatusCountResponse(
                         status,
-                        repository.countByStatus(status)
-                ))
+                        repository.countByUserIdAndStatus(userId, status)))
                 .toList();
     }
 
-    public List<HistoricalStageCountResponse> getHistoricalStageCounts() {
+    public List<HistoricalStageCountResponse> getHistoricalStageCounts(
+            Long userId) {
         return STATUSES.stream()
                 .map(status -> new HistoricalStageCountResponse(
                         status,
                         historyRepository
-                                .countDistinctApplicationsByStatuses(
-                                        List.of(status))
-                ))
+                                .countDistinctApplicationsByStatusesAndUserId(
+                                        List.of(status), userId)))
                 .toList();
     }
 
-    public FunnelAnalyticsResponse getFunnelAnalytics() {
-        long total = repository.count();
-        long saved = repository.countByStatus("SAVED");
+    public FunnelAnalyticsResponse getFunnelAnalytics(Long userId) {
+        long total = repository.countByUserId(userId);
+        long saved = repository.countByUserIdAndStatus(userId, "SAVED");
         long submitted = total - saved;
 
         long interviewOrOffer =
-                repository.countByStatusIn(INTERVIEW_STATUSES);
+                repository.countByUserIdAndStatusIn(
+                        userId, INTERVIEW_STATUSES);
 
-        long offers = repository.countByStatus("OFFER");
+        long offers = repository.countByUserIdAndStatus(userId, "OFFER");
 
         long historicalSubmitted =
-                historyRepository.countDistinctApplicationsByStatuses(
-                        SUBMITTED_STATUSES);
+                historyRepository.countDistinctApplicationsByStatusesAndUserId(
+                        SUBMITTED_STATUSES, userId);
 
         long historicalInterviews =
-                historyRepository.countDistinctApplicationsByStatuses(
-                        INTERVIEW_STATUSES);
+                historyRepository.countDistinctApplicationsByStatusesAndUserId(
+                        INTERVIEW_STATUSES, userId);
 
         long historicalOffers =
-                historyRepository.countDistinctApplicationsByStatuses(
-                        List.of("OFFER"));
+                historyRepository.countDistinctApplicationsByStatusesAndUserId(
+                        List.of("OFFER"), userId);
 
         return new FunnelAnalyticsResponse(
                 total,
@@ -105,13 +95,12 @@ public class AnalyticsService {
         );
     }
 
-    public List<DailyActivityResponse> getDailyActivity() {
-        return repository.findDailyApplicationActivity()
+    public List<DailyActivityResponse> getDailyActivity(Long userId) {
+        return repository.findDailyApplicationActivity(userId)
                 .stream()
                 .map(activity -> new DailyActivityResponse(
                         activity.getActivityDate(),
-                        activity.getApplicationCount()
-                ))
+                        activity.getApplicationCount()))
                 .toList();
     }
 
@@ -125,8 +114,7 @@ public class AnalyticsService {
                 .divide(
                         BigDecimal.valueOf(denominator),
                         2,
-                        RoundingMode.HALF_UP
-                )
+                        RoundingMode.HALF_UP)
                 .doubleValue();
     }
 }

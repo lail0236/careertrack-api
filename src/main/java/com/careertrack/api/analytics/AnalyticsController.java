@@ -1,6 +1,8 @@
 
 package com.careertrack.api.analytics;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,23 +19,31 @@ public class AnalyticsController {
         this.service = service;
     }
 
+    private Long authenticatedUserId(Jwt jwt) {
+        return Long.valueOf(jwt.getSubject());
+    }
+
     @GetMapping("/status-counts")
-    public List<StatusCountResponse> getStatusCounts() {
-        return service.getStatusCounts();
+    public List<StatusCountResponse> getStatusCounts(
+            @AuthenticationPrincipal Jwt jwt) {
+        return service.getStatusCounts(authenticatedUserId(jwt));
     }
 
     @GetMapping("/historical-stage-counts")
-    public List<HistoricalStageCountResponse> getHistoricalStageCounts() {
-        return service.getHistoricalStageCounts();
+    public List<HistoricalStageCountResponse> getHistoricalStageCounts(
+            @AuthenticationPrincipal Jwt jwt) {
+        return service.getHistoricalStageCounts(authenticatedUserId(jwt));
     }
 
     @GetMapping("/funnel")
-    public FunnelAnalyticsResponse getFunnelAnalytics() {
-        return service.getFunnelAnalytics();
+    public FunnelAnalyticsResponse getFunnelAnalytics(
+            @AuthenticationPrincipal Jwt jwt) {
+        return service.getFunnelAnalytics(authenticatedUserId(jwt));
     }
 
     @GetMapping("/activity")
-    public List<DailyActivityResponse> getDailyActivity() {
-        return service.getDailyActivity();
+    public List<DailyActivityResponse> getDailyActivity(
+            @AuthenticationPrincipal Jwt jwt) {
+        return service.getDailyActivity(authenticatedUserId(jwt));
     }
 }

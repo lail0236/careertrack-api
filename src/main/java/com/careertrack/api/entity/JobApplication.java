@@ -4,6 +4,7 @@ package com.careertrack.api.entity;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "job_applications")
@@ -33,6 +34,11 @@ public class JobApplication {
 
     @Column(length = 2000)
     private String notes;
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -118,6 +124,14 @@ public class JobApplication {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public LocalDateTime getCreatedAt() {
