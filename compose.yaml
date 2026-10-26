@@ -1,0 +1,38 @@
+
+services:
+  db:
+    image: postgres:18
+    container_name: careertrack-db
+    environment:
+      POSTGRES_DB: careertrack
+      POSTGRES_USER: careertrack
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in your .env file}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - careertrack_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U careertrack -d careertrack"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: careertrack-api
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/careertrack
+      DB_USERNAME: careertrack
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in your .env file}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  careertrack_data:
