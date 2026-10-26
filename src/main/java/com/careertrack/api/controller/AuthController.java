@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.careertrack.api.dto.LoginRequest;
+import com.careertrack.api.dto.LoginResponse;
 import com.careertrack.api.dto.RegisterRequest;
 import com.careertrack.api.dto.RegisterResponse;
 import com.careertrack.api.service.AuthService;
@@ -29,5 +31,11 @@ public class AuthController {
     public RegisterResponse register(
             @Valid @RequestBody RegisterRequest request) {
         return authService.register(request);
+    }
+
+    @PostMapping("/login")
+    public LoginResponse login(
+            @Valid @RequestBody LoginRequest request) {
+        return authService.login(request);
     }
 }
