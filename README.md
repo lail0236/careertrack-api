@@ -5,16 +5,16 @@ A REST API for tracking job applications, recording status history, and analyzin
 **Repository:** https://github.com/lail0236/careertrack-api
 
 ## Features
-
 - User registration and login with JWT access tokens.
 - Password hashing with BCrypt.
 - Authenticated, user-scoped application management.
+- Create, retrieve, update, and delete job applications.
 - Status tracking: `SAVED`, `APPLIED`, `ASSESSMENT`, `INTERVIEW`, `OFFER`, and `REJECTED`.
 - Application status history.
-- Per-user analytics for status counts, application funnel, activity, and historical stage counts.
+- Per-user status, funnel, activity, and historical analytics.
 - Request validation and centralized error handling.
-- PostgreSQL schema migrations managed by Flyway.
-- OpenAPI documentation and Swagger UI.
+- PostgreSQL migrations managed by Flyway.
+- OpenAPI 3.1 documentation and Swagger UI.
 - Docker Compose development environment.
 - Automated tests and CI workflow.
 
@@ -26,16 +26,15 @@ A REST API for tracking job applications, recording status history, and analyzin
 | Backend | Spring Boot |
 | Security | Spring Security, JWT, BCrypt |
 | Database | PostgreSQL |
-| Database migrations | Flyway |
-| API documentation | OpenAPI / Swagger UI |
+| Migrations | Flyway |
+| API documentation | OpenAPI 3.1 / Swagger UI |
 | Containers | Docker, Docker Compose |
 | Build and tests | Maven Wrapper |
 
-## Architecture overview
+## Architecture
 
 ```text
 Client
-  |
   | HTTP + JSON; JWT bearer token for protected routes
   v
 Spring Boot REST API
@@ -43,74 +42,67 @@ Spring Boot REST API
   |-- Application management
   |-- Status history
   |-- Analytics
-  |
   v
 PostgreSQL
-  ^
-  | Flyway-managed schema migrations
+  ^ Flyway-managed schema migrations
 ```
 
-## Prerequisites
+Protected application, history, and analytics operations are scoped to the authenticated user's identity.
 
+## Prerequisites
 - Git
 - Docker Desktop with Docker Compose
-- Java 21 is useful for local development; the container workflow builds and runs the API in Docker.
+- Java 21 for local development (the container workflow builds and runs the API in Docker)
 
 ## Run locally with Docker Compose
 
-1. Clone the repository and enter its directory:
+1. Clone the repository:
 
    ```powershell
    git clone https://github.com/lail0236/careertrack-api.git
    cd careertrack-api
    ```
 
-2. Create a local environment file from the example:
+2. Create the local environment file:
 
    ```powershell
    Copy-Item .env.example .env
    ```
 
-3. Open `.env` and replace every placeholder with local development values. Use a strong database password and a JWT secret of at least 32 bytes. Do not commit `.env` or paste its secrets into issue reports.
+3. Replace placeholders in `.env` with local values. Use a strong database password and a JWT secret of at least 32 bytes. Never commit `.env`.
 
-4. Build and start the services:
+4. Build and start:
 
    ```powershell
    docker compose up --build -d
    ```
 
-5. Check service status and API health:
+5. Check services and API health:
 
    ```powershell
    docker compose ps
    Invoke-RestMethod http://localhost:8080/api/health
    ```
 
-6. Open Swagger UI:
+6. Open Swagger UI: http://localhost:8080/swagger-ui/index.html
 
-   http://localhost:8080/swagger-ui/index.html
+   OpenAPI JSON: http://localhost:8080/v3/api-docs
 
-   OpenAPI JSON is available at:
-
-   http://localhost:8080/v3/api-docs
-
-### Stop the services
+### Stop services
 
 ```powershell
 docker compose down
 ```
 
-This preserves the named PostgreSQL data volume. To stop the services and **delete local database data**, use `docker compose down -v` only when you intentionally want a clean database.
+This preserves the named PostgreSQL volume. `docker compose down -v` deletes local database data; use it only when you intentionally want a clean database.
 
 ## Configuration
 
-The Compose setup reads local secrets from `.env`. Start with `.env.example` and check the actual Compose configuration if variable names change. Typical configuration values include the PostgreSQL database name and username, PostgreSQL password, and JWT signing secret.
-
-Never use example credentials or development secrets in a public deployment. Keep `.env` out of version control.
+The Compose setup reads local secrets from `.env`. Start with `.env.example` and check the actual Compose configuration if variable names change. Never use example credentials or development secrets in a public deployment. Keep `.env` out of version control.
 
 ## API overview
 
-The local API base URL is `http://localhost:8080`.
+The running OpenAPI document exposes **14 operations across four controller groups**. Local base URL: `http://localhost:8080`.
 
 | Method | Endpoint | Purpose | Authentication |
 |---|---|---|---|
@@ -119,18 +111,19 @@ The local API base URL is `http://localhost:8080`.
 | `POST` | `/api/auth/login` | Log in and receive a JWT | Public |
 | `GET` | `/api/applications` | List the current user's applications | Required |
 | `POST` | `/api/applications` | Create an application | Required |
-| `GET` | `/api/applications/{id}` | Get one owned application | Required |
-| `PATCH` | `/api/applications/{id}/status` | Change an application's status | Required |
-| `GET` | `/api/applications/{id}/history` | Read history for an owned application | Required |
-| `GET` | `/api/analytics/status-counts` | Counts grouped by current status | Required |
+| `GET` | `/api/applications/{id}` | Get one application | Required |
+| `PUT` | `/api/applications/{id}` | Update an application | Required |
+| `DELETE` | `/api/applications/{id}` | Delete an application | Required |
+| `PATCH` | `/api/applications/{id}/status` | Change application status | Required |
+| `GET` | `/api/applications/{id}/history` | Read status history | Required |
+| `GET` | `/api/analytics/status-counts` | Current status counts | Required |
+| `GET` | `/api/analytics/historical-stage-counts` | Historical stage counts | Required |
 | `GET` | `/api/analytics/funnel` | Application funnel metrics | Required |
 | `GET` | `/api/analytics/activity` | Application activity | Required |
-| `GET` | `/api/analytics/historical-stage-counts` | Historical stage counts | Required |
 
-For request examples, see [`docs/API_EXAMPLES.md`](docs/API_EXAMPLES.md). Swagger UI exposes the schemas available in the running application.
+For exact request examples and field constraints, see [`docs/API_EXAMPLES.md`](docs/API_EXAMPLES.md). Swagger UI exposes the live schemas.
 
 ## Authentication flow
-
 1. Register through `POST /api/auth/register`.
 2. Log in through `POST /api/auth/login`.
 3. Copy the returned `accessToken`.
@@ -140,52 +133,45 @@ Access tokens are short-lived. Log in again when a token expires.
 
 ## Testing
 
-Run the automated test suite from the repository root:
-
 ```powershell
 .\mvnw.cmd -B test
-```
-
-Build the application:
-
-```powershell
 .\mvnw.cmd -B package
 ```
 
-For a Docker-based smoke test:
+Docker smoke test:
 
 ```powershell
 docker compose up --build -d
 Invoke-RestMethod http://localhost:8080/api/health
 ```
 
-The project has also been manually checked for authentication and cross-user isolation: unauthenticated protected requests return HTTP 401, and attempts to retrieve another user's application or history return HTTP 404. Analytics were checked with two test users to confirm that each user's results exclude the other user's data.
+Manual checks have verified that unauthenticated protected requests return HTTP 401, attempts to retrieve another user's application or history return HTTP 404, and analytics exclude another user's data.
 
 ## Security notes
-
 - Passwords are stored as BCrypt hashes, not plaintext.
 - Protected endpoints require JWT authentication.
 - Application queries and analytics are scoped to the authenticated user.
 - Keep `.env` and real credentials out of Git.
 - Rotate any credential that was ever exposed in a public commit or log.
-- Before public deployment, configure production-grade secrets, HTTPS, database access restrictions, backups, and appropriate logging.
+- Before public deployment, configure production-grade secrets, HTTPS, database access restrictions, backups, and logging.
 
-## Screenshots for the portfolio
+## Swagger UI screenshots
 
-Suggested screenshots to add under `docs/screenshots/`:
+### API overview
+![Swagger API overview](docs/screenshots/swagger-overview.png)
 
-1. `swagger-overview.png` — Swagger UI endpoint overview.
-2. `auth-register-login.png` — authentication endpoints and schemas.
-3. `application-endpoints.png` — application CRUD, status, and history endpoints.
-4. `analytics-endpoints.png` — analytics endpoint group.
-5. `ci-passing.png` — successful GitHub Actions run.
+### Authentication and analytics
+![Swagger authentication and analytics](docs/screenshots/swagger-auth-analytics.png)
 
-Capture screenshots from your own running application or GitHub repository. Do not include tokens, passwords, personal data, or `.env` contents.
+### Application endpoints and schemas
+![Swagger application details](docs/screenshots/swagger-application-details.png)
+
+Do not include tokens, passwords, personal data, or `.env` contents.
 
 ## Project status
 
-The core API, JWT authentication, per-user data isolation, analytics, database migrations, Docker workflow, and automated tests have been implemented. This repository is being prepared as a software engineering portfolio project.
+The core API, JWT authentication, per-user data isolation, analytics, database migrations, Docker workflow, automated tests, and API documentation have been implemented. The project is undergoing final portfolio presentation and deployment-readiness review.
 
 ## License
 
-No license is specified here. If you want others to reuse the code, choose and add a license explicitly.
+No license is specified. Add one explicitly if you want others to reuse the code.

@@ -1,23 +1,24 @@
 # Portfolio Readiness Checklist
 
 ## Documentation
-- [ ] Review `README.md` against actual configuration and endpoint schemas.
+- [ ] Confirm README endpoint list matches `/v3/api-docs`.
+- [ ] Confirm examples match the live OpenAPI schemas.
 - [ ] Follow setup instructions from a clean checkout.
 - [ ] Confirm `.env.example` contains placeholders only.
 - [ ] Confirm `.env` is ignored and not tracked.
-- [ ] Check that the README contains no unverified deployment claims.
 
-## API evidence
-- [ ] Open Swagger UI locally.
-- [ ] Capture the endpoint overview.
-- [ ] Capture authentication, applications, and analytics endpoint groups.
-- [ ] Remove tokens, passwords, email addresses, and personal data from screenshots.
-- [ ] Save images under `docs/screenshots/`.
+## Swagger evidence
+- [x] Capture `swagger-overview.png` showing API title and application endpoints.
+- [x] Capture `swagger-auth-analytics.png` showing authentication, health, and analytics.
+- [x] Capture `swagger-application-details.png` showing expanded application operations and schemas.
+- [x] Remove tokens, passwords, email addresses, and personal data from screenshots.
+- [x] Save images under `docs/screenshots/`.
+- [x] Add screenshots to the README.
 
 ## Verification
 - [ ] Run `.\mvnw.cmd -B test`.
-- [ ] Run `git status`.
-- [ ] Inspect changes with `git diff -- README.md docs/API_EXAMPLES.md docs/PORTFOLIO_CHECKLIST.md`.
+- [ ] Run `git diff --check`.
+- [ ] Review all staged documentation and screenshot files.
 - [ ] Commit only after reviewing the diff.
 - [ ] Push and verify GitHub Actions is green.
 

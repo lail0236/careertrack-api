@@ -1,6 +1,6 @@
 # API Examples
 
-These examples use `http://localhost:8080`. Run the application first. Do not commit real tokens or credentials.
+These examples use `http://localhost:8080`. Run the application first. Never commit real tokens or credentials. Field names and constraints below are taken from the running OpenAPI document.
 
 ## 1. Check API health
 
@@ -10,7 +10,10 @@ curl http://localhost:8080/api/health
 
 ## 2. Register a user
 
-The registration request uses `name`, `email`, and `password`.
+Required: `name`, `email`, `password`.
+- `name`: string, maximum 100 characters.
+- `email`: valid email, maximum 255 characters.
+- `password`: 8–72 characters.
 
 ```bash
 curl -X POST http://localhost:8080/api/auth/register \
@@ -22,9 +25,11 @@ curl -X POST http://localhost:8080/api/auth/register \
   }'
 ```
 
-Use a unique email for each test registration. Do not reuse production credentials.
+Use a unique email for each test registration.
 
 ## 3. Log in
+
+Required: `email`, `password`.
 
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
@@ -35,7 +40,7 @@ curl -X POST http://localhost:8080/api/auth/login \
   }'
 ```
 
-Copy the `accessToken` from the response into a local shell variable. Do not paste a real token into public documentation or commit it.
+Copy `accessToken` from the response. Do not commit or publish a real token.
 
 ### PowerShell token variable
 
@@ -54,7 +59,8 @@ $headers = @{ Authorization = "Bearer $token" }
 
 ## 4. Create an application
 
-The verified minimum request fields are `company` and `position`.
+Required: `company`, `position` (each maximum 150 characters).
+Optional: `location` (100), `jobUrl` (2048), `dateApplied` (date, `YYYY-MM-DD`), and `notes` (2000).
 
 ```bash
 curl -X POST http://localhost:8080/api/applications \
@@ -62,11 +68,15 @@ curl -X POST http://localhost:8080/api/applications \
   -H "Content-Type: application/json" \
   -d '{
     "company": "Example Company",
-    "position": "Junior Software Engineer"
+    "position": "Junior Software Engineer",
+    "location": "Dallas, TX",
+    "jobUrl": "https://example.com/jobs/123",
+    "dateApplied": "2026-11-01",
+    "notes": "Applied through the company careers page."
   }'
 ```
 
-## 5. List your applications
+## 5. List applications
 
 ```bash
 curl http://localhost:8080/api/applications \
@@ -75,49 +85,71 @@ curl http://localhost:8080/api/applications \
 
 ## 6. Get one application
 
-Replace `APPLICATION_ID` with an ID returned by the API.
-
 ```bash
 curl http://localhost:8080/api/applications/APPLICATION_ID \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
-## 7. Change application status
+## 7. Update an application
 
-Supported statuses are `SAVED`, `APPLIED`, `ASSESSMENT`, `INTERVIEW`, `OFFER`, and `REJECTED`. Check the request schema in Swagger UI for the exact JSON property expected by the current build.
+`PUT /api/applications/{id}` uses the same `CreateJobApplicationRequest` schema as creation. Include `company` and `position`.
 
-Endpoint: `PATCH /api/applications/{id}/status`
+```bash
+curl -X PUT http://localhost:8080/api/applications/APPLICATION_ID \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "company": "Example Company",
+    "position": "Backend Engineer",
+    "location": "Austin, TX",
+    "jobUrl": "https://example.com/jobs/456",
+    "dateApplied": "2026-11-01",
+    "notes": "Updated application details."
+  }'
+```
 
-## 8. Read application history
+## 8. Delete an application
+
+```bash
+curl -X DELETE http://localhost:8080/api/applications/APPLICATION_ID \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+## 9. Change application status
+
+Required: `status` (string, maximum 30 characters). Supported statuses: `SAVED`, `APPLIED`, `ASSESSMENT`, `INTERVIEW`, `OFFER`, `REJECTED`.
+
+```bash
+curl -X PATCH http://localhost:8080/api/applications/APPLICATION_ID/status \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "APPLIED"
+  }'
+```
+
+## 10. Read application history
 
 ```bash
 curl http://localhost:8080/api/applications/APPLICATION_ID/history \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
-## 9. Read analytics
+## 11. Read analytics
 
 ```bash
-curl http://localhost:8080/api/analytics/status-counts \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-
-curl http://localhost:8080/api/analytics/funnel \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-
-curl http://localhost:8080/api/analytics/activity \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-
-curl http://localhost:8080/api/analytics/historical-stage-counts \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+curl http://localhost:8080/api/analytics/status-counts -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+curl http://localhost:8080/api/analytics/historical-stage-counts -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+curl http://localhost:8080/api/analytics/funnel -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+curl http://localhost:8080/api/analytics/activity -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
-## 10. Verify access isolation
+## 12. Verify access isolation
 
 Use two separate registered test users:
-
 - User A creates an application and can retrieve it.
 - User B attempts to retrieve User A's application ID and should receive HTTP `404`.
 - An unauthenticated request to a protected endpoint should receive HTTP `401`.
 - Each user's analytics should reflect only that user's data.
 
-These are security expectations, not a substitute for running the tests against your current build.
+These are security expectations, not a substitute for running tests against your current build.
