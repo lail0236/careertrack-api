@@ -20,10 +20,10 @@ WORKDIR /app
 
 RUN useradd --system --uid 10001 appuser
 
-COPY --from=build /app/target/careertrack-api-*.jar app.jar
+COPY --from=build --chown=10001:10001 /app/target/careertrack-api-*.jar /app/app.jar
 
-USER appuser
+USER 10001:10001
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]

@@ -26,14 +26,15 @@ import com.careertrack.api.repository.UserRepository;
 @Service
 public class AuthService {
 
-    private static final long TOKEN_LIFETIME_SECONDS = 900;
-
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtEncoder jwtEncoder;
 
     @Value("${app.jwt.issuer:careertrack-api}")
-    private String jwtIssuer;
+    private String jwtIssuer = "careertrack-api";
+
+    @Value("${app.jwt.token-lifetime-seconds:900}")
+    private long tokenLifetimeSeconds = 900;
 
     public AuthService(
             UserRepository userRepository,
@@ -92,8 +93,14 @@ public class AuthService {
             throw invalidCredentials();
         }
 
+        if (tokenLifetimeSeconds <= 0) {
+            throw new IllegalStateException(
+                    "JWT token lifetime must be greater than zero."
+            );
+        }
+
         Instant now = Instant.now();
-        Instant expiresAt = now.plusSeconds(TOKEN_LIFETIME_SECONDS);
+        Instant expiresAt = now.plusSeconds(tokenLifetimeSeconds);
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(jwtIssuer)
@@ -112,7 +119,7 @@ public class AuthService {
         return new LoginResponse(
                 token,
                 "Bearer",
-                TOKEN_LIFETIME_SECONDS
+                tokenLifetimeSeconds
         );
     }
 
